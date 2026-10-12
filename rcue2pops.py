@@ -13,8 +13,8 @@ from typing import Optional, Tuple
 
 # CRITICAL CONSTANTS - DO NOT ALTER
 SECTORSIZE = 2352
-VCD_HEADER_SIZE = 0x100000  # 1 MiB[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span)
-IO_BUFFER_SIZE = 0x40000   # 256 KiB buffer for Android/Termux[span_2](start_span)[span_2](end_span)
+VCD_HEADER_SIZE = 0x100000  # 1 MiB[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span)
+IO_BUFFER_SIZE = 0x40000   # 256 KiB buffer for Android/Termux[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span)
 
 # User interrupt signal flag (SIGINT/SIGTERM)
 g_interrupted = False
@@ -32,7 +32,7 @@ signal.signal(signal.SIGTERM, handle_signal)
 
 @dataclass
 class Parameters:
-    """Structure equivalent to parameters in cue2pops.c[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span)"""
+    """Structure equivalent to parameters in cue2pops.c[span_5](start_span)[span_5](end_span)[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span)"""
     vmode: bool = False
     trainer: bool = False
     gap_more: bool = False
@@ -57,7 +57,7 @@ def game_identifier(inbuf: memoryview, p: Parameters):
     if p.game_title == 0:
         for ptr in range(0, limit, 4):
             if ptr + 16 <= limit:
-                # Crash Bandicoot [SCES-00344][span_5](start_span)[span_5](end_span)[span_6](start_span)[span_6](end_span)
+                # Crash Bandicoot [SCES-00344][span_8](start_span)[span_8](end_span)[span_9](start_span)[span_9](end_span)[span_10](start_span)[span_10](end_span)
                 if inbuf[ptr:ptr+16] == b"SCES-00344      ":
                     print("-" * 82)
                     print("Crash Bandicoot [SCES-00344]")
@@ -66,7 +66,7 @@ def game_identifier(inbuf: memoryview, p: Parameters):
                     p.game_has_cheats = 1
                     p.fix_game = 0
                     break
-                # Crash Bandicoot [SCUS-94900][span_7](start_span)[span_7](end_span)[span_8](start_span)[span_8](end_span)
+                # Crash Bandicoot [SCUS-94900][span_11](start_span)[span_11](end_span)[span_12](start_span)[span_12](end_span)[span_13](start_span)[span_13](end_span)
                 if inbuf[ptr:ptr+16] == b"SCUS-94900      ":
                     print("-" * 82)
                     print("Crash Bandicoot [SCUS-94900]")
@@ -74,16 +74,16 @@ def game_identifier(inbuf: memoryview, p: Parameters):
                     p.game_has_cheats = 1
                     p.fix_game = 0
                     break
-                # Crash Bandicoot [SCPS_10031] (Exact C signature with underscore)[span_9](start_span)[span_9](end_span)
+                # Crash Bandicoot [SCPS_10031] (Exact C signature with underscore)[span_14](start_span)[span_14](end_span)[span_15](start_span)[span_15](end_span)
                 if inbuf[ptr:ptr+16] == b"SCPS_10031      ":
                     print("-" * 82)
-                    print("Crash Bandicoot [SCPS_10031]")
+                    print("Crash Bandicoot [SCPS-10031]")
                     p.game_title = 3
                     p.game_has_cheats = 1
                     p.fix_game = 0
                     break
             if ptr + 18 <= limit:
-                # Metal Gear Solid : Special Missions [SLES-02136][span_10](start_span)[span_10](end_span)[span_11](start_span)[span_11](end_span)
+                # Metal Gear Solid : Special Missions [SLES-02136][span_16](start_span)[span_16](end_span)[span_17](start_span)[span_17](end_span)[span_18](start_span)[span_18](end_span)
                 if inbuf[ptr:ptr+18] == b" 1999081614163300$":
                     print("-" * 82)
                     print("Metal Gear Solid : Special Missions [SLES-02136]")
@@ -208,7 +208,7 @@ def convert_file_ending_to_vcd(file_name: str) -> str:
 
 
 def get_lead_out(hbuf: bytearray, b_size: int, pregap_count: int, postgap_count: int) -> int:
-    """Calculates Lead-Out MSF based on BIN file size matching cue2pops.c logic precisely[span_12](start_span)[span_12](end_span)[span_13](start_span)[span_13](end_span)."""
+    """Calculates Lead-Out MSF based on BIN file size matching cue2pops.c logic precisely[span_19](start_span)[span_19](end_span)[span_20](start_span)[span_20](end_span)[span_21](start_span)[span_21](end_span)."""
     sector_count = (b_size // SECTORSIZE) + (150 * (pregap_count + postgap_count)) + 150
     leadoutM = sector_count // 4500
     leadoutS = (sector_count - leadoutM * 4500) // 75
@@ -225,7 +225,7 @@ def get_lead_out(hbuf: bytearray, b_size: int, pregap_count: int, postgap_count:
 
 
 def parse_cli_args() -> Tuple[Optional[str], Optional[str], Parameters]:
-    """Custom parser to preserve the exact CLI behavior of cue2pops.c[span_14](start_span)[span_14](end_span)[span_15](start_span)[span_15](end_span)."""
+    """Custom parser to preserve the exact CLI behavior of cue2pops.c[span_22](start_span)[span_22](end_span)[span_23](start_span)[span_23](end_span)[span_24](start_span)[span_24](end_span)."""
     params = Parameters()
     raw_args = sys.argv[1:]
 
@@ -271,35 +271,35 @@ def main():
         print("gap-- : Substracts 2 seconds to all track indexes MSF")
         print("vmode : Attempts to patch the video mode to NTSC and to fix the screen position")
         print("trainer : Enable cheats\n")
-        return
+        sys.exit(0)
 
     if not is_cue(cue_name):
         print(f"input .cue file: {cue_name} did not exist")
-        return
+        sys.exit(0)
 
     if vcd_name is None:
         vcd_name = convert_file_ending_to_vcd(cue_name)
 
     if params.gap_more and params.gap_less:
         print("Syntax Error : Conflicting gap++/gap-- arguments.\n")
-        return
+        sys.exit(0)
 
     vcd_out_path = Path(vcd_name)
     if vcd_out_path.exists() and not params.force_overwrite:
         print(f"Error: Output file {vcd_name} already exists. Use -f or --force to overwrite.")
-        return
+        sys.exit(0)
 
     cue_path = Path(cue_name)
     cue_size = get_file_size(cue_path)
     if cue_size < 0:
-        return
+        sys.exit(0)
 
     try:
         with open(cue_path, "rb") as f:
             cue_bytes = f.read()
     except Exception as e:
         print(f"Failed to open cuefile {cue_name}, error {e}")
-        return
+        sys.exit(0)
 
     try:
         cue_text = cue_bytes.decode("latin-1")
@@ -310,14 +310,14 @@ def main():
     if "INDEX 01 00" not in cue_text and not re.search(r"INDEX\s+01\s+00", cue_text):
         if "INDEX 01" not in cue_text:
             print("Error: The cue sheet is not valid\n")
-            return
+            sys.exit(0)
 
     file_match = re.search(r'FILE\s+"([^"]+)"', cue_text, re.IGNORECASE)
     if not file_match:
         file_match = re.search(r'FILE\s+([^\s]+)\s+BINARY', cue_text, re.IGNORECASE)
         if not file_match:
             print("Error: The cue sheet is not valid\n")
-            return
+            sys.exit(0)
 
     bin_filename = file_match.group(1)
     bin_path = cue_path.parent / bin_filename
@@ -334,13 +334,13 @@ def main():
 
     if binary_count == 0:
         print("Error: Unstandard cue sheet\n")
-        return
+        sys.exit(0)
     if track_count == 0 or track_count != index1_count:
         print("Error: Cannot count tracks\n")
-        return
+        sys.exit(0)
     if binary_count != 1 or wave_count != 0:
         print("Error: Cue sheets of splitted dumps aren't supported\n")
-        return
+        sys.exit(0)
 
     fix_CDRWIN = 0
     if pregap_count == 1 and postgap_count == 0:
@@ -362,7 +362,7 @@ def main():
     daTrack_ptr = 0
     noCDDA = 0
 
-    # CUE track processing reproducing original C logic[span_16](start_span)[span_16](end_span)[span_17](start_span)[span_17](end_span)
+    # CUE track processing reproducing original C logic[span_25](start_span)[span_25](end_span)[span_26](start_span)[span_26](end_span)[span_27](start_span)[span_27](end_span)
     track_blocks = re.split(r'TRACK\s+', cue_text, flags=re.IGNORECASE)[1:]
     for i, block in enumerate(track_blocks):
         header_ptr += 10
@@ -461,11 +461,16 @@ def main():
 
     bin_size = get_file_size(bin_path)
     if bin_size < 0:
-        return
+        sys.exit(0)
 
     sector_count = get_lead_out(headerbuf, bin_size, pregap_count, postgap_count)
     if noCDDA == 1:
         daTrack_ptr = bin_size
+
+    # Parity check mirroring cue2pops.c sector_count size validation[span_28](start_span)[span_28](end_span)
+    if sector_count.bit_length() > 32:
+        print("Error: sector_count variable exceeds 32 bits. This will break the header generation.\n")
+        sys.exit(0)
 
     headerbuf[1032:1036] = sector_count.to_bytes(4, byteorder='little')
     headerbuf[1036:1040] = sector_count.to_bytes(4, byteorder='little')
@@ -559,7 +564,7 @@ def main():
                     pass
 
     if not success:
-        return
+        sys.exit(0)
 
     if params.game_title >= 0 and params.fix_game == 1 and params.game_fixed == 0:
         print("COULD NOT APPLY THE GAME FIXE(S) : No data to patch found")
@@ -570,6 +575,7 @@ def main():
 
     print("A POPS virtual CD-ROM image was saved to :")
     print(f"{vcd_name}\n")
+    sys.exit(1)  # Mirrors cue2pops.c final success return code[span_29](start_span)[span_29](end_span)
 
 
 if __name__ == "__main__":
