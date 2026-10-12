@@ -9,12 +9,12 @@ import sys
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, Tuple
 
 # CRITICAL CONSTANTS - DO NOT ALTER
 SECTORSIZE = 2352
-VCD_HEADER_SIZE = 0x100000  # 1 MiB
-IO_BUFFER_SIZE = 0x40000   # 256 KiB buffer for Android/Termux
+VCD_HEADER_SIZE = 0x100000  # 1 MiB[span_0](start_span)[span_0](end_span)[span_1](start_span)[span_1](end_span)
+IO_BUFFER_SIZE = 0x40000   # 256 KiB buffer for Android/Termux[span_2](start_span)[span_2](end_span)
 
 # User interrupt signal flag (SIGINT/SIGTERM)
 g_interrupted = False
@@ -32,7 +32,7 @@ signal.signal(signal.SIGTERM, handle_signal)
 
 @dataclass
 class Parameters:
-    """Structure equivalent to parameters in cue2pops.c"""
+    """Structure equivalent to parameters in cue2pops.c[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span)"""
     vmode: bool = False
     trainer: bool = False
     gap_more: bool = False
@@ -52,43 +52,45 @@ class Parameters:
 
 def game_identifier(inbuf: memoryview, p: Parameters):
     """Searches for specific title signatures in the executable within the 1 MiB window."""
+    buf_len = len(inbuf)
+    limit = min(buf_len, VCD_HEADER_SIZE)
     if p.game_title == 0:
-        buf_len = len(inbuf)
-        limit = min(buf_len, VCD_HEADER_SIZE)
-        for ptr in range(0, limit - 16, 4):
-            # Crash Bandicoot [SCES-00344]
-            if inbuf[ptr:ptr+16] == b"SCES-00344      ":
-                print("-" * 82)
-                print("Crash Bandicoot [SCES-00344]")
-                p.deny_vmode += 1
-                p.game_title = 1
-                p.game_has_cheats = 1
-                p.fix_game = 0
-                break
-            # Crash Bandicoot [SCUS-94900]
-            if inbuf[ptr:ptr+16] == b"SCUS-94900      ":
-                print("-" * 82)
-                print("Crash Bandicoot [SCUS-94900]")
-                p.game_title = 2
-                p.game_has_cheats = 1
-                p.fix_game = 0
-                break
-            # Crash Bandicoot [SCPS-10031]
-            if inbuf[ptr:ptr+16] == b"SCPS-10031      ":
-                print("-" * 82)
-                print("Crash Bandicoot [SCPS-10031]")
-                p.game_title = 3
-                p.game_has_cheats = 1
-                p.fix_game = 0
-                break
-            # Metal Gear Solid : Special Missions [SLES-02136]
-            if ptr <= limit - 18 and inbuf[ptr:ptr+18] == b" 1999081614163300$":
-                print("-" * 82)
-                print("Metal Gear Solid : Special Missions [SLES-02136]")
-                p.game_title = 4
-                p.game_has_cheats = 0
-                p.fix_game = 1
-                break
+        for ptr in range(0, limit, 4):
+            if ptr + 16 <= limit:
+                # Crash Bandicoot [SCES-00344][span_5](start_span)[span_5](end_span)[span_6](start_span)[span_6](end_span)
+                if inbuf[ptr:ptr+16] == b"SCES-00344      ":
+                    print("-" * 82)
+                    print("Crash Bandicoot [SCES-00344]")
+                    p.deny_vmode += 1
+                    p.game_title = 1
+                    p.game_has_cheats = 1
+                    p.fix_game = 0
+                    break
+                # Crash Bandicoot [SCUS-94900][span_7](start_span)[span_7](end_span)[span_8](start_span)[span_8](end_span)
+                if inbuf[ptr:ptr+16] == b"SCUS-94900      ":
+                    print("-" * 82)
+                    print("Crash Bandicoot [SCUS-94900]")
+                    p.game_title = 2
+                    p.game_has_cheats = 1
+                    p.fix_game = 0
+                    break
+                # Crash Bandicoot [SCPS_10031] (Exact C signature with underscore)[span_9](start_span)[span_9](end_span)
+                if inbuf[ptr:ptr+16] == b"SCPS_10031      ":
+                    print("-" * 82)
+                    print("Crash Bandicoot [SCPS_10031]")
+                    p.game_title = 3
+                    p.game_has_cheats = 1
+                    p.fix_game = 0
+                    break
+            if ptr + 18 <= limit:
+                # Metal Gear Solid : Special Missions [SLES-02136][span_10](start_span)[span_10](end_span)[span_11](start_span)[span_11](end_span)
+                if inbuf[ptr:ptr+18] == b" 1999081614163300$":
+                    print("-" * 82)
+                    print("Metal Gear Solid : Special Missions [SLES-02136]")
+                    p.game_title = 4
+                    p.game_has_cheats = 0
+                    p.fix_game = 1
+                    break
 
     if p.game_title != 0 and p.fix_game == 1:
         print("GameFixer is ON")
@@ -105,11 +107,11 @@ def game_fixer(inbuf: memoryview, p: Parameters):
     if p.game_fixed == 0:
         buf_len = len(inbuf)
         limit = min(buf_len, VCD_HEADER_SIZE)
-        for ptr in range(0, limit - 4, 4):
+        for ptr in range(0, limit - 3, 4):
             if p.game_title == 4:
-                if inbuf[ptr:ptr+4] == b"\x78\x26\x43\x8c":
+                if ptr + 4 <= limit and inbuf[ptr:ptr+4] == b"\x78\x26\x43\x8c":
                     inbuf[ptr] = 0x74
-                if inbuf[ptr:ptr+4] == b"\xe8\x75\x06\x80":
+                if ptr + 4 <= limit and inbuf[ptr:ptr+4] == b"\xe8\x75\x06\x80":
                     if ptr >= 8:
                         inbuf[ptr - 8] = 0x07
                         print("game_fixer : Disc Swap Patched")
@@ -123,20 +125,20 @@ def game_trainer(inbuf: memoryview, p: Parameters):
     if p.game_trained == 0:
         buf_len = len(inbuf)
         limit = min(buf_len, VCD_HEADER_SIZE)
-        for ptr in range(0, limit - 4, 4):
-            if p.game_title == 1 and inbuf[ptr:ptr+4] == b"\x7c\x16\x20\xac":
+        for ptr in range(0, limit - 3, 4):
+            if p.game_title == 1 and ptr + 4 <= limit and inbuf[ptr:ptr+4] == b"\x7c\x16\x20\xac":
                 inbuf[ptr+2] = 0x22
                 print("game_trainer : Test Save System Enabled")
                 p.game_trained = 1
                 print("-" * 82)
                 break
-            elif p.game_title == 2 and inbuf[ptr:ptr+4] == b"\x9c\x19\x20\xac":
+            elif p.game_title == 2 and ptr + 4 <= limit and inbuf[ptr:ptr+4] == b"\x9c\x19\x20\xac":
                 inbuf[ptr+2] = 0x22
                 print("game_trainer : Test Save System Enabled")
                 p.game_trained = 1
                 print("-" * 82)
                 break
-            elif p.game_title == 3 and inbuf[ptr:ptr+4] == b"\x84\x19\x20\xac":
+            elif p.game_title == 3 and ptr + 4 <= limit and inbuf[ptr:ptr+4] == b"\x84\x19\x20\xac":
                 inbuf[ptr+2] = 0x22
                 print("game_trainer : Test Save System Enabled")
                 p.game_trained = 1
@@ -148,9 +150,9 @@ def ntsc_patcher(inbuf: memoryview, tracker: int, p: Parameters):
     """Searches for and applies NTSC video mode patches and Y-Pos alignment."""
     buf_len = len(inbuf)
     limit = min(buf_len, VCD_HEADER_SIZE)
-    for i in range(0, limit - 28, 4):
+    for i in range(0, limit - 27, 4):
         # Y-Pos Pattern
-        if (inbuf[i] == 0x13 and inbuf[i+1] == 0x00 and (inbuf[i+2] in (0x90, 0x91)) and inbuf[i+3] == 0x24) and \
+        if i + 8 <= limit and (inbuf[i] == 0x13 and inbuf[i+1] == 0x00 and (inbuf[i+2] in (0x90, 0x91)) and inbuf[i+3] == 0x24) and \
            (inbuf[i+4] == 0x10 and inbuf[i+5] == 0x00 and (inbuf[i+6] in (0x90, 0x91)) and inbuf[i+7] == 0x24):
             print(f"Y-Pos pattern found at dump offset 0x{tracker + i:X} / LBA {(tracker + i) // SECTORSIZE} (VCD offset 0x{VCD_HEADER_SIZE + tracker + i:X})")
             inbuf[i] = 0xF8
@@ -159,7 +161,7 @@ def ntsc_patcher(inbuf: memoryview, tracker: int, p: Parameters):
             inbuf[i+5] = 0xFF
             print("-" * 82)
         # VMODE Pattern
-        elif inbuf[i+2] != 0xBD and inbuf[i+3] != 0x27 and inbuf[i+4] == 0x08 and inbuf[i+5] == 0x00 and \
+        elif i + 28 <= limit and inbuf[i+2] != 0xBD and inbuf[i+3] != 0x27 and inbuf[i+4] == 0x08 and inbuf[i+5] == 0x00 and \
              inbuf[i+6] == 0xE0 and inbuf[i+7] == 0x03 and inbuf[i+14] == 0x02 and inbuf[i+15] == 0x3C and \
              inbuf[i+18] == 0x42 and inbuf[i+19] == 0x8C and inbuf[i+20] == 0x08 and inbuf[i+21] == 0x00 and \
              inbuf[i+22] == 0xE0 and inbuf[i+23] == 0x03 and inbuf[i+24] == 0x00 and inbuf[i+25] == 0x00 and \
@@ -206,7 +208,7 @@ def convert_file_ending_to_vcd(file_name: str) -> str:
 
 
 def get_lead_out(hbuf: bytearray, b_size: int, pregap_count: int, postgap_count: int) -> int:
-    """Calculates Lead-Out MSF based on BIN file size."""
+    """Calculates Lead-Out MSF based on BIN file size matching cue2pops.c logic precisely[span_12](start_span)[span_12](end_span)[span_13](start_span)[span_13](end_span)."""
     sector_count = (b_size // SECTORSIZE) + (150 * (pregap_count + postgap_count)) + 150
     leadoutM = sector_count // 4500
     leadoutS = (sector_count - leadoutM * 4500) // 75
@@ -222,8 +224,8 @@ def get_lead_out(hbuf: bytearray, b_size: int, pregap_count: int, postgap_count:
     return sector_count
 
 
-def parse_cli_args() -> tuple[Optional[str], Optional[str], Parameters]:
-    """Custom parser to preserve the exact CLI behavior of cue2pops.c."""
+def parse_cli_args() -> Tuple[Optional[str], Optional[str], Parameters]:
+    """Custom parser to preserve the exact CLI behavior of cue2pops.c[span_14](start_span)[span_14](end_span)[span_15](start_span)[span_15](end_span)."""
     params = Parameters()
     raw_args = sys.argv[1:]
 
@@ -280,6 +282,11 @@ def main():
 
     if params.gap_more and params.gap_less:
         print("Syntax Error : Conflicting gap++/gap-- arguments.\n")
+        return
+
+    vcd_out_path = Path(vcd_name)
+    if vcd_out_path.exists() and not params.force_overwrite:
+        print(f"Error: Output file {vcd_name} already exists. Use -f or --force to overwrite.")
         return
 
     cue_path = Path(cue_name)
@@ -355,7 +362,7 @@ def main():
     daTrack_ptr = 0
     noCDDA = 0
 
-    # CUE track processing reproducing original C logic
+    # CUE track processing reproducing original C logic[span_16](start_span)[span_16](end_span)[span_17](start_span)[span_17](end_span)
     track_blocks = re.split(r'TRACK\s+', cue_text, flags=re.IGNORECASE)[1:]
     for i, block in enumerate(track_blocks):
         header_ptr += 10
@@ -469,26 +476,21 @@ def main():
     headerbuf[1027] = 0x20
 
     print("Saving the virtual CD-ROM image. Please wait...")
-    vcd_out_path = Path(vcd_name)
-    try:
-        with open(vcd_out_path, "wb") as f_vcd:
-            f_vcd.write(headerbuf)
-    except Exception as e:
-        print(f"Error: Cannot write to {vcd_name}: {e}")
-        return
+    vcd_temp_path = vcd_out_path.with_suffix(vcd_out_path.suffix + ".tmp")
+    success = False
 
-    # Chunked I/O processing via IO_BUFFER_SIZE (256 KiB) accumulating a logical 1 MiB window
-    analysis_window = bytearray()
-    
     try:
-        with open(vcd_out_path, "ab+") as f_vcd, open(bin_path, "rb") as f_bin:
+        with open(vcd_temp_path, "wb") as f_vcd:
+            f_vcd.write(headerbuf)
+
+        # Chunked I/O processing via IO_BUFFER_SIZE (256 KiB) with guaranteed finally cleanup block
+        with open(vcd_temp_path, "ab+") as f_vcd, open(bin_path, "rb") as f_bin:
             i = 0
             while i < bin_size:
                 if g_interrupted:
                     print("\nOperation interrupted by user.")
                     return
 
-                # Read up to 1 MiB to build the logical analysis window from original C
                 read_target = min(VCD_HEADER_SIZE, bin_size - i)
                 window_buf = bytearray()
                 
@@ -498,18 +500,21 @@ def main():
                         break
                     window_buf.extend(chunk)
 
+                if len(window_buf) < read_target:
+                    print(f"Error: Unexpected end of BIN file at offset {i}. Read {len(window_buf)} bytes, expected {read_target}.")
+                    return
+
                 if fix_CDRWIN == 1 and (i + len(window_buf) >= daTrack_ptr):
                     bytes_before = daTrack_ptr - i
                     if bytes_before > 0:
                         f_vcd.write(window_buf[:bytes_before])
 
-                    # Insert 150 zero sectors (CDRWIN pregap fix)
                     padding = b"\x00" * (150 * SECTORSIZE)
                     f_vcd.write(padding)
 
-                    bytes_after = len(window_buf) - bytes_before
-                    if bytes_after > 0:
-                        f_vcd.write(window_buf[bytes_after:])
+                    bytes_after_start = bytes_before
+                    if bytes_after_start < len(window_buf):
+                        f_vcd.write(window_buf[bytes_after_start:])
                     fix_CDRWIN = 0
                 else:
                     if params.vmode and i == 0:
@@ -538,8 +543,22 @@ def main():
 
                 i += len(window_buf)
 
+        success = True
+
     except Exception as e:
         print(f"Error during file processing: {e}")
+    finally:
+        if success:
+            if vcd_temp_path.exists():
+                shutil.move(str(vcd_temp_path), str(vcd_out_path))
+        else:
+            if vcd_temp_path.exists():
+                try:
+                    vcd_temp_path.unlink()
+                except Exception:
+                    pass
+
+    if not success:
         return
 
     if params.game_title >= 0 and params.fix_game == 1 and params.game_fixed == 0:
